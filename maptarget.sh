@@ -1,4 +1,5 @@
 #!/bin/bash
+version="1.0"
 MSP=""          # this is the first part of the MSP URL (e.g. if your MMSP URL is "foo.firewalla.net" put foo here
 token=""        # This is the MSP token
 backuppath=""   # the path you wat to use to save the Target lists
