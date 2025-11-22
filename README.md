@@ -1,5 +1,5 @@
 # Firewalla-MSP-Toolkit
-Here are some Sample scripts using Firewalla MSP APIs. If there's sommemthing you are interested in open an issue to request.
+Here are some Sample scripts using Firewalla MSP APIs. If there's something you are interested in, open an issue to request.
 
 *  [``msptarget.sh``](https://github.com/mbierman/Firewalla-MSP-Toolkit/blob/main/maptarget.sh) Backup or search your MSP target lists Options [1.0 Nov 21]
     * ``./msptarget.sh -b``          # backup all target lists
