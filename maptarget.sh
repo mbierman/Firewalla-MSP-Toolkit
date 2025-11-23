@@ -1,5 +1,5 @@
 #!/bin/bash
-version="3.6"
+version="3.8"
 
 # --- Configuration Variables ---
 MSP="kaleb" # The first part of the MSP URL
@@ -57,7 +57,7 @@ fetch_data() {
 
 if [ "$1" = "-b" ]; then
     fetch_data # Load data before backup
-    ## 💾 Backup Logic: Correct File Header Format (v3.6)
+    ## 💾 Backup Logic: Correct File Header Format (v3.8)
     
 	if [[ -z "$backuppath" ]] ; then
 		echo "Error: You need to define the backuppath."
@@ -131,22 +131,21 @@ if [ "$1" = "-b" ]; then
 
 elif [ "$1" = "-s" ]; then
     fetch_data # Load data before search
-    ## 🔎 Search Logic: Corrected to display Name and Targets (v3.6)
+    ## 🔎 Search Logic: Fixed for escaped newlines (v3.8)
 
     if [ "$2" ]; then
         list_id="$2"
         
-        # JQ filter to extract Name and Targets for the given ID.
+        # JQ filter: Use TSV but ensure targets is a single newline-separated block
         # Outputs: "Name\tTarget1\nTarget2\nTarget3"
-        result=$(echo "$json" | jq -r '[.[] | select(.id=="'"$list_id"'") | .name, (.targets | join("\n"))] | join("\t")')
+        result=$(echo "$json" | jq -r '[.[] | select(.id=="'"$list_id"'") | .name, (.targets | join("\n"))] | @tsv')
         
         # Check if a match was found (result is empty if no ID matched)
         if [ -z "$result" ]; then
             echo "Error: No target list found for ID: $list_id"
         else
-            # Split the result into Name and Targets
-            list_name=$(echo "$result" | awk -F'\t' '{print $1}')
-            targets=$(echo "$result" | awk -F'\t' '{print $2}')
+            # Use read to split the TSV output. 
+            IFS=$'\t' read -r list_name targets <<< "$result"
             
             # Use 'NONE' for empty Name or empty Targets
             final_name=${list_name:-NONE}
@@ -154,13 +153,14 @@ elif [ "$1" = "-s" ]; then
 
             # Output the required format
             echo "Name: $final_name"
-            echo "Contents:" # Using "Contents" as requested
+            echo "Contents:" 
             
-            # Print targets directly if not NONE
+            # Print targets directly, using 'echo -e' to force newline interpretation
             if [ "$final_targets" = "NONE" ]; then
                 echo ""
             else
-                echo "$targets"
+                # *** The fix is here: using 'echo -e' ***
+                echo -e "$targets"
             fi
         fi
         
