@@ -1,5 +1,5 @@
 #!/bin/bash
-version="1.0" 
+version="1.0.1" 
 
 MSP="" # The first part of the MSP URL
 token="Token " # The MSP token
@@ -155,7 +155,7 @@ else
     # This block executes if $1 is empty (no argument provided) or invalid
     echo "MSP Rule Backup Tool (Version $version)"
     echo "Usage:"
-    echo " 	$0 -j 	 	 # **J**SON: Save complete rule JSON objects to individual **.json** files, named by the rule's ID."
-    echo " 	$0 -s <id> 	 # **S**earch: Show rule details (Action, Status, Target Type, etc.) for a specific ID."
-    echo " 	$0 -s 	 	 # **S**earch: List all rule IDs and key details."
+    echo "    $0 -j  		# JSON: Save complete rule JSON objects to individual .json files, named by the rule's ID."
+    echo "    $0 -s <id> 	# Search: Show rule details (Action, Status, Target Type, etc.) for a specific ID."
+    echo "    $0 -s  		# Search: List all rule IDs and key details."
 fi
