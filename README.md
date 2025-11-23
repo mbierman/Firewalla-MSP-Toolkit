@@ -12,7 +12,7 @@ In each script there are a few variables you need to set before using. See [Fire
     * ``./msptarget.sh -s``          # list all IDs
 
 ## Rules
-*  [``msprulesbackup.sh``](https://github.com/mbierman/Firewalla-MSP-Toolkit/blob/main/msprulesbackup.sh) Backup or search your MSP target lists Options [1.0 Nov 23]
+*  [``msprulesbackup.sh``](https://github.com/mbierman/Firewalla-MSP-Toolkit/blob/main/msprulesbackup.sh) Backup or search your MSP target lists Options [1.0.1 Nov 23]
     * ``./msptarget.sh -j``          # backup all target lists in json format
     * ``./msptarget.sh -s <id>``     # show rules for a specific list ID
     * ``./msptarget.sh -s``          # list all rules
