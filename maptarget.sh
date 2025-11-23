@@ -1,5 +1,5 @@
 #!/bin/bash
-version="3.8"
+version="3.10"
 
 # --- Configuration Variables ---
 MSP="kaleb" # The first part of the MSP URL
@@ -53,12 +53,8 @@ fetch_data() {
     fi
 }
 
-# --- Main Command Handling ---
-
-if [ "$1" = "-b" ]; then
-    fetch_data # Load data before backup
-    ## 💾 Backup Logic: Correct File Header Format (v3.8)
-    
+# Function to check and create the backup directory
+check_dir() {
 	if [[ -z "$backuppath" ]] ; then
 		echo "Error: You need to define the backuppath."
 		exit 1
@@ -75,8 +71,16 @@ if [ "$1" = "-b" ]; then
 			exit 1
 		fi
 	fi
+}
 
-    echo "Starting backup of target lists to: $backuppath"
+# --- Main Command Handling ---
+
+if [ "$1" = "-b" ]; then
+    fetch_data # Load data before backup
+    check_dir
+    ## 💾 Backup Logic: Targets to .txt file (v3.10)
+    
+    echo "Starting text backup of target lists to: $backuppath"
     
     # JQ output: ID\nName\nTarget1\nTarget2\n---END_OF_LIST---\nID2\nName2...
     current_id=""
@@ -91,7 +95,7 @@ if [ "$1" = "-b" ]; then
                 filename=$(echo "$current_name" | tr ' /' '_-')
                 filepath="$backuppath/$filename.txt"
                 
-                echo "Backing up: $current_name"
+                echo "Backing up TXT: $current_name"
                 
                 # --- FILE CONTENT CONSTRUCTION ---
                 # First line: #ID:[ID]. Subsequent lines: Targets.
@@ -127,11 +131,42 @@ if [ "$1" = "-b" ]; then
         fi
     done < <(echo "$json" | jq -r '.[] | .id, .name, (.targets | .[]), "---END_OF_LIST---"')
 
-    echo "Backup complete! ✅"
+    echo "Text backup complete! ✅"
+
+elif [ "$1" = "-j" ]; then
+    fetch_data # Load data before backup
+    check_dir
+    ## 💾 JSON Backup Logic: Correct JSON Filename Format (v3.10)
+
+    echo "Starting JSON backup of target lists to: $backuppath"
+
+    # Fix: Use jq -r for raw output of .name, and use @json for the object.
+    echo "$json" | jq -r -c '.[] | .name, @json' |
+    while IFS= read -r line; do
+        if [ -z "$current_name" ]; then
+            # First line is the unquoted name (raw output)
+            current_name="$line"
+        else
+            # Second line is the JSON object (compacted)
+            # Sanitize the filename
+            filename=$(echo "$current_name" | tr ' /' '_-')
+            filepath="$backuppath/$filename.json"
+
+            echo "Backing up JSON: $current_name"
+
+            # Use jq '.' to pretty-print the compact JSON before saving it.
+            echo "$line" | jq '.' > "$filepath"
+            
+            # Reset for the next list
+            current_name=""
+        fi
+    done
+
+    echo "JSON backup complete! ✅"
 
 elif [ "$1" = "-s" ]; then
     fetch_data # Load data before search
-    ## 🔎 Search Logic: Fixed for escaped newlines (v3.8)
+    ## 🔎 Search Logic (v3.10)
 
     if [ "$2" ]; then
         list_id="$2"
@@ -159,7 +194,6 @@ elif [ "$1" = "-s" ]; then
             if [ "$final_targets" = "NONE" ]; then
                 echo ""
             else
-                # *** The fix is here: using 'echo -e' ***
                 echo -e "$targets"
             fi
         fi
@@ -175,7 +209,8 @@ else
     # This block executes if $1 is empty (no argument provided)
     echo "MSP Target List Tool (Version $version)"
     echo "Usage:"
-    echo "  $0 -b          # **B**ackup all target lists (content only) to '$backuppath'"
-    echo "  $0 -s <id>     # **S**how the Name and Contents of a specific list"
-    echo "  $0 -s          # **S**how/list all target list IDs and Names (Name | ID)"
+    echo "  $0 -b          # **B**ackup: Save targets (with #ID header) to individual **.txt** files."
+    echo "  $0 -j          # **J**SON: Save complete list JSON objects to individual **.json** files."
+    echo "  $0 -s <id>     # **S**how the Name and Contents of a specific list."
+    echo "  $0 -s          # **S**how/list all target list IDs and Names (Name | ID)."
 fi
