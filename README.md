@@ -5,14 +5,16 @@ In each script there are a few variables you need to set before using. See [Fire
 
 ## Targets
 
-*  [``msptarget.sh``](https://github.com/mbierman/Firewalla-MSP-Toolkit/blob/main/maptarget.sh) Backup or search your MSP target lists Options [3.8 Nov 22]
-    * ``msptarget.sh -b``          # backup all target lists
-    * ``msptarget.sh -j``          # backup all target lists in json format
-    * ``msptarget.sh -s <id>``     # show targets for a specific list ID
-    * ``msptarget.sh -s``          # list all IDs
+*  [``msptarget.sh``](https://github.com/mbierman/Firewalla-MSP-Toolkit/blob/main/maptarget.sh) Backup or search your MSP target lists Options [3.9 Nov 29]
+    * ``msptarget.sh -b  [-o <owner_name|id>]``    # backup all target lists, -o can backup just one box or Global lists
+    * ``msptarget.sh -j [-o <owner_name|id>]``     # JSON: Save complete list JSON objects to .json files.
+    * ``msptarget.sh-s <id> [-o <owner_name|id>]`` # Show the Name and Contents of a specific list.
+    * ``msptarget.sh -s [-o <owner_name|id>]``     # Show/list all target list IDs and Names (Name | ID).
+    * ``msptarget.sh -s [-o <owner_name|id>]``     # Show/list all target list IDs and Names (Name | ID).
+
 
 ## Rules
 *  [``msprulesbackup.sh``](https://github.com/mbierman/Firewalla-MSP-Toolkit/blob/main/msprulesbackup.sh) Backup or search your MSP target lists Options [1.0.1 Nov 23]
-    * ``msprulesbackup.sh -j``          # backup all target lists in json format
-    * ``msprulesbackup.sh -s <id>``     # show rules for a specific list ID
-    * ``msprulesbackup.sh -s``          # list all rules
+    * ``msprulesbackup.sh -j``                     # backup all target lists in json format
+    * ``msprulesbackup.sh -s <id>``                # show rules for a specific list ID
+    * ``msprulesbackup.sh -s``                     # list all rules
