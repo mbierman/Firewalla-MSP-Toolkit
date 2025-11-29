@@ -1,5 +1,5 @@
 #!/bin/bash
-version="3.41"
+version="3.9"
 
 # --- Configuration Variables ---
 MSP=""         # the first part of the MSP URL (exlude the "firewalla.net" portion
@@ -365,11 +365,10 @@ case "${arg_list[0]}" in
         # Default help menu
         echo "MSP Target List Tool (Version $version)"
         echo "Usage:"
-        echo "  ${0##*/} -b [-o <owner_name|id>] # **B**ackup: Save targets to .txt files."
-        echo "  ${0##*/} -j [-o <owner_name|id>] # **J**SON: Save complete list JSON objects to .json files."
-        echo "  ${0##*/} -s <id> [-o <owner_name|id>] # **S**how the Name and Contents of a specific list."
-        echo "  ${0##*/} -s [-o <owner_name|id>] # **S**how/list all target list IDs and Names (Name | ID)."
-        echo "  ${0##*/} -o <owner_name|id>      # Permanently set/check the **O**wner ID/Name."
+        echo "  ${0##*/} -b [-o <owner_name|id>]      # Backup: Save targets to .txt files."
+        echo "  ${0##*/} -j [-o <owner_name|id>]      # JSON: Save complete list JSON objects to .json files."
+        echo "  ${0##*/} -s <id> [-o <owner_name|id>] # Show the Name and Contents of a specific list."
+        echo "  ${0##*/} -s [-o <owner_name|id>]      # Show/list all target list IDs and Names (Name | ID)."
         echo "   Names available: $AVAILABLE_NAMES, global"
-        ;;
+        ;;  
 esac
