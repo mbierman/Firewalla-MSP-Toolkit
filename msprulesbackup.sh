@@ -1,14 +1,16 @@
 #!/bin/bash
-version="1.0.1" 
+version="2.0" 
 
-MSP="" # The first part of the MSP URL
-token="Token " # The MSP token
-owner="" # The owner ID for fetching lists
-backuppath="" # The path to save the Rules
+MSP="MSPNAME" # The first part of the MSP URL
+token="Token " # The MSP token. leave the Token portion
+backuppath="where you want the backup to go" # The base path to save the rules
+default_gid="" # default box (if you have more than one box put the GID of the box here. 
+
 # --- End Configuration Variables ---
 
-# Global variable to hold the fetched JSON data
+# Global variables to hold the fetched JSON data
 json="" 
+boxes_json=""
 
 # Function to handle API connection and data validation
 fetch_data() {
@@ -21,53 +23,82 @@ fetch_data() {
         exit 1
     fi
 
+    # 1. Fetch Boxes first to map GIDs to Names
+    echo "Fetching boxes from https://${MSP}.firewalla.net/v2/boxes..."
+    boxes_json=$(curl -sk --location "https://${MSP}.firewalla.net/v2/boxes" \
+        -H "Authorization: ${token}" \
+        -H "Content-Type: application/json")
+
+    if [ -z "$boxes_json" ] || echo "$boxes_json" | grep -q "Authentication failed"; then
+        echo "Error: Failed to fetch boxes. Check connectivity or token format."
+        exit 1
+    fi
+
+    # 2. Fetch Rules
     echo "Fetching rules from https://${MSP}.firewalla.net/v2/rules..."
-    # Use -sk for security bypass and silent output
     json=$(curl -sk --location "https://${MSP}.firewalla.net/v2/rules" \
         -H "Authorization: ${token}" \
         -H "Content-Type: application/json")
     
     # --- API Error and JSON Validation ---
-
     if [ -z "$json" ]; then
         echo "Error: API call returned empty or failed. Check connectivity or token format."
         exit 1
     fi
 
-    # Check for Authentication Failure (specific error object or message)
     if echo "$json" | grep -q "Authentication failed"; then
-        echo "Error: Authentication failed. Please verify your token/format (e.g., 'Token XXXX')."
-        echo "Response details:"
-        echo "$json" | jq .
+        echo "Error: Authentication failed. Please verify your token/format."
         exit 1
     fi
 
-    # Check for the top-level "results" array key in the new structure
     if ! echo "$json" | jq -e '.results | arrays' > /dev/null; then
         echo "Error: Unexpected response format. The JSON does not contain a top-level 'results' array."
-        echo "Received full response:"
-        echo "$json" | jq .
         exit 1
     fi
 } 
 
-# Function to check and create the backup directory
+# Function to resolve GID to a safe folder name
+get_box_folder_name() {
+    local gid="$1"
+    
+    if [[ -z "$gid" || "$gid" == "global" ]]; then
+        echo "global"
+        return
+    fi
+
+    # Try matching assuming the response is nested under .results or direct array
+    local box_name
+    box_name=$(echo "$boxes_json" | jq -r --arg gid "$gid" '
+        if type == "array" then 
+            .[] | select(.gid == $gid) | .name
+        elif type == "object" and .results then 
+            .results[] | select(.gid == $gid) | .name
+        else 
+            empty 
+        end' 2>/dev/null)
+
+    # Fall back to GID if name mapping isn't found in the API results
+    if [[ -z "$box_name" || "$box_name" == "null" ]]; then
+        echo "$gid"
+    else
+        # 1. xargs strips out outer leading/trailing whitespaces cleanly
+        # 2. sed replaces any internal remaining space or tab clusters with a single underscore
+        # 3. tr -cd strips out remaining non-filesystem-safe characters
+        echo "$box_name" | xargs | sed 's/[[:space:]]\+/_/g' | tr -cd '[:alnum:]_-'
+    fi
+}
+
+# Function to check and create a specific directory path dynamically
 check_dir() {
-    if [[ -z "$backuppath" ]] ; then
-        echo "Error: You need to define the backuppath."
+    local target_dir="$1"
+    if [[ -z "$target_dir" ]] ; then
+        echo "Error: Directory path is empty."
         exit 1
     fi
     
-    if [ ! -d "$backuppath" ] ; then
-        read -p "Directory '$backuppath' does not exist. Create it? (y/n): " -n 1 -r response
-        echo
-        if [[ "$response" =~ ^[Yy]$ ]]; then
-            mkdir -p "$backuppath"
-            echo "Directory created."
-        else
-            echo "Directory not created. Exiting."
-            exit 1
-        fi
+    if [ ! -d "$target_dir" ] ; then
+        mkdir -p "$target_dir"
+        echo "Directory created: $target_dir"
     fi
 } 
 
@@ -75,32 +106,53 @@ check_dir() {
 
 if [ "$1" = "-j" ]; then
     fetch_data # Load data before backup
-    check_dir
-    ## 💾 JSON Backup Logic: Rules to JSON file
-
-    echo "Starting JSON backup of rules to: $backuppath"
-
-    # JQ output: Prints the rule's ID followed by the compacted JSON object for that rule.
-    echo "$json" | jq -r -c '.results[] | .id, @json' |
-    while IFS= read -r line; do
-        if [ -z "$current_id" ]; then
-            # First line is the unquoted rule ID (raw output)
-            current_id="$line"
-        else
-            # Second line is the JSON object (compacted)
+    
+    # Check if user explicitly called for all boxes or if we fall back to the default box
+    if [ "$2" = "--all" ]; then
+        echo "Starting JSON backup of rules for ALL boxes..."
+        
+        # JQ output: Prints the rule's box GID, the rule ID, followed by the compacted JSON object.
+        echo "$json" | jq -r -c '.results[] | (.gid // "global"), .id, @json' |
+        while IFS= read -r rule_box_gid; do
+            read -r current_id
+            read -r line
             
-            # The filename is the rule's ID
-            filepath="$backuppath/$current_id.json"
-
-            echo "Backing up JSON: $current_id"
-
-            # Use jq '.' to pretty-print the compact JSON before saving it.
+            # Map GID to Name for folder creation
+            folder_name=$(get_box_folder_name "$rule_box_gid")
+            target_dir="$backuppath/$folder_name"
+            check_dir "$target_dir"
+            
+            filepath="$target_dir/$current_id.json"
+            echo "Backing up Rule: $current_id to folder: $folder_name"
             echo "$line" | jq '.' > "$filepath"
-            
-            # Reset for the next rule
-            current_id=""
+        done
+    else
+        # Backup only the defined default box rules
+        if [[ -z "$default_gid" || "$default_gid" == "YOUR_DEFAULT_BOX_GID_HERE" ]]; then
+            echo "Error: Default GID is not configured. Please define 'default_gid' variable or pass '--all'."
+            exit 1
         fi
-    done
+        
+        # Map default GID to name for the folder
+        folder_name=$(get_box_folder_name "$default_gid")
+        target_dir="$backuppath/$folder_name"
+        check_dir "$target_dir"
+        
+        echo "Starting JSON backup of rules filtered by default box: $folder_name ($default_gid)"
+        
+        # JQ output: Filters results natively to only match the default box GID
+        echo "$json" | jq -r -c --arg def_gid "$default_gid" '.results[] | select(.gid == $def_gid) | .id, @json' |
+        while IFS= read -r line; do
+            if [ -z "$current_id" ]; then
+                current_id="$line"
+            else
+                filepath="$target_dir/$current_id.json"
+                echo "Backing up default box JSON: $current_id"
+                echo "$line" | jq '.' > "$filepath"
+                current_id="" # Reset
+            fi
+        done
+    fi
 
     echo "JSON backup complete! ✅"
 
@@ -111,11 +163,10 @@ elif [ "$1" = "-s" ]; then
     # Define the parser logic as a single-line string. We will now prepend this as a 'def' in the jq command.
     target_value_parser='def parse_target_value: .target.value as $val | if $val == null then "" elif ($val | type) == "array" then ($val | join(", ")) elif ($val | type) == "object" then ($val | to_entries | .[].value | join(", ")) else ($val // "") end;'
     
-    if [ "$2" ]; then
+    if [ "$2" ] && [ "$2" != "--all" ]; then
         rule_id="$2"
         
         # JQ filter: Select the rule by ID and format the output as TSV
-        # Now we prepend the parser definition and call it directly.
         result=$(echo "$json" | jq -r --arg rule_id "$rule_id" "$target_value_parser"'
             .results[] | select(.id==$rule_id) | 
             [.action, .direction, .status, (.target.type // ""), (parse_target_value)] | @tsv')
@@ -144,7 +195,6 @@ elif [ "$1" = "-s" ]; then
         # No ID provided → print all IDs, Actions, Statuses, Target Type, and Target Value
         echo "Listing all Rules (ID | Action | Status | Target Type | Target Value(s)):"
         echo "---"
-        # Prepend the parser definition and call it directly.
         echo "$json" | jq -r "$target_value_parser"'
             .results[] | 
             (parse_target_value) as $target_val |
@@ -152,10 +202,11 @@ elif [ "$1" = "-s" ]; then
     fi
 
 else
-    # This block executes if $1 is empty (no argument provided) or invalid
+# This block executes if $1 is empty (no argument provided) or invalid
     echo "MSP Rule Backup Tool (Version $version)"
     echo "Usage:"
-    echo "    $0 -j  		# JSON: Save complete rule JSON objects to individual .json files, named by the rule's ID."
-    echo "    $0 -s <id> 	# Search: Show rule details (Action, Status, Target Type, etc.) for a specific ID."
-    echo "    $0 -s  		# Search: List all rule IDs and key details."
+    echo "    $0 -j              # Backup rules only for the configured default box GID ($default_gid)"
+    echo "    $0 -j --all        # Backup all rules, sorting them into separate folders named by Box Name."
+    echo "    $0 -s <id>         # Search: Show rule details for a specific ID."
+    echo "    $0 -s              # Search: List all rule IDs and key details."
 fi
