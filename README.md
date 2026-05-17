@@ -3,7 +3,7 @@ Here are some sample scripts using Firewalla MSP APIs. If there's something you 
 
 In each script there are a few variables you need to set before using. See [Firewalla's MSP documentation](https://help.firewalla.com/hc/en-us/articles/5345330648083-Getting-Started-with-the-Firewalla-MSP-API) for tips on things like how to get your API key. 
 
-## Targets
+## Target lists
 
 *  [``msptarget.sh``](https://github.com/mbierman/Firewalla-MSP-Toolkit/blob/main/maptarget.sh) Backup or search your MSP target lists Options [3.9 Nov 29]
     * ``msptarget.sh -b  [-o <owner_name|id>]``     # backup all target lists, -o can backup just one box or Global lists
@@ -19,6 +19,6 @@ In each script there are a few variables you need to set before using. See [Fire
     * ``backup_msp_rules.sh -s <id>``                 # show rules for a specific list ID
     * ``backup_msp_rules.sh -s``                      # list all rules
 
-*  [``restore_msp_rules.sh``](https://github.com/mbierman/Firewalla-MSP-Toolkit/blob/main/backup_msp_rules.sh) Backup or search your MSP target lists Options [2.0 May 16]
+*  [``restore_msp_rules.sh``](https://github.com/mbierman/Firewalla-MSP-Toolkit/blob/main/backup_msp_rules.sh) Backup or search your MSP target lists Options [1.0 May 16]
     * ``restore_msp_rules.sh -l path(s) to files``     # restore the target list from the backup
     * ``restore_msp_rules.sh path(s) to files``        # A dry run will show what would happen but no restore will be done. 
