@@ -14,7 +14,11 @@ In each script there are a few variables you need to set before using. See [Fire
 
 
 ## Rules
-*  [``msprulesbackup.sh``](https://github.com/mbierman/Firewalla-MSP-Toolkit/blob/main/msprulesbackup.sh) Backup or search your MSP target lists Options [1.0.1 Nov 23]
-    * ``msprulesbackup.sh -j``                      # backup all target lists in json format
-    * ``msprulesbackup.sh -s <id>``                 # show rules for a specific list ID
-    * ``msprulesbackup.sh -s``                      # list all rules
+*  [``msprulesbackup.sh``](https://github.com/mbierman/Firewalla-MSP-Toolkit/blob/main/backup_msp_rules.sh) Backup or search your MSP target lists Options [2.0 May 16]
+    * ``backup_msp_rules.sh -j``                      # backup all target lists in json format
+    * ``backup_msp_rules.sh -s <id>``                 # show rules for a specific list ID
+    * ``backup_msp_rules.sh -s``                      # list all rules
+
+*  [``restore_msp_rules.sh``](https://github.com/mbierman/Firewalla-MSP-Toolkit/blob/main/backup_msp_rules.sh) Backup or search your MSP target lists Options [2.0 May 16]
+    * ``restore_msp_rules.sh -l path(s) to files``     # restore the target list from the backup
+    * ``restore_msp_rules.sh path(s) to files``        # A dry run will show what would happen but no restore will be done. 
